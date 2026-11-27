@@ -65,6 +65,14 @@ Kode QR untuk keempat outlet dibuat dan dicetak dari menu **QR Code** di dashboa
 - WA dikirim **setelah** tamu menerima konfirmasi, jadi tamu tidak menunggu Fonnte. Riwayat 30 kiriman terakhir (berhasil/gagal) tampil di tab Pengaturan.
 - Token disimpan di database dan tidak pernah dikirim balik ke browser (hanya 4 karakter terakhir yang ditampilkan).
 
+### Backup, Restore & Hapus Data Transaksi (tab 🛠️ Pengaturan, Admin saja)
+- **Buat Backup Sekarang**: membuat file ZIP berisi seluruh data (menu, harga, jam outlet, akun staff, pengaturan QR & WA, pesanan, data tamu) beserta foto menu/logo QR. File disimpan di server (`config/backups/`, tidak bisa dibuka dari web) dan langsung terunduh ke komputer. Simpan juga salinannya di komputer/Google Drive.
+- **Restore**: dari daftar backup di server atau upload file `.zip`/`.json` dari komputer. Restore **mengganti seluruh data** dengan isi backup, termasuk akun staff. Wajib ketik `RESTORE` dan password admin.
+- **Hapus Data Transaksi**: mengosongkan pesanan (opsional juga data tamu & log WhatsApp) setelah training. Menu, akun, dan pengaturan tidak tersentuh. Wajib ketik `HAPUS` dan password admin.
+- Sebelum restore dan hapus transaksi, sistem **selalu membuat backup otomatis** (15 terakhir disimpan), jadi kesalahan bisa dibatalkan dengan restore file "Otomatis".
+
+Alur training yang disarankan: Buat Backup ("sebelum training") → training transaksi → Hapus Data Transaksi → aplikasi siap dipakai sungguhan.
+
 ## 7. Update aplikasi di kemudian hari
 - Upload file baru dengan cara menimpa file lama, kecuali folder `config/env.php`, `config/vapid.php`, dan `uploads/`.
 - Jika file frontend berubah, naikkan `CACHE_VERSION` di `sw.js` dan `?v=` di `index.html`/`staff.html`.

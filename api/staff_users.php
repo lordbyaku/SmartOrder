@@ -27,15 +27,6 @@ if ($method === 'GET') {
     json_ok(['users' => list_users($pdo), 'outlets' => OUTLETS]);
 }
 
-/** Database lama (sebelum v1.4) belum punya role 'manager' di ENUM → tambahkan otomatis. */
-function ensure_manager_role(PDO $pdo): void
-{
-    $col = $pdo->query("SHOW COLUMNS FROM staff_users LIKE 'role'")->fetch();
-    if ($col && stripos((string) $col['Type'], "'manager'") === false) {
-        $pdo->exec("ALTER TABLE staff_users MODIFY role ENUM('admin', 'manager', 'cashier') NOT NULL DEFAULT 'cashier'");
-    }
-}
-
 $in = read_json();
 
 if ($method === 'POST') {

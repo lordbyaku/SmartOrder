@@ -28,3 +28,6 @@ desktop.ini
 .vscode/
 .idea/
 .claude/
+
+# Backup database di server (dibuat dari menu Pengaturan)
+config/backups/

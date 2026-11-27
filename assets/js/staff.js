@@ -846,9 +846,125 @@
   /* PENGATURAN ADMIN (WhatsApp Fonnte + info sistem)                   */
   /* ================================================================== */
   function viewSettings(v) {
-    v.innerHTML = '<h2 class="section-title">Pengaturan Admin</h2><div id="sBody"><div class="skeleton" style="height:160px"></div></div>';
+    v.innerHTML = '<h2 class="section-title">Pengaturan Admin</h2><div id="sBody"><div class="skeleton" style="height:160px"></div></div>' +
+      '<div id="bkBody" style="margin-top:14px"><div class="skeleton" style="height:120px"></div></div>';
     api('api/settings.php').then(function (d) { renderSettings(d); })
       .catch(function (e) { $('#sBody').innerHTML = '<div class="banner warn">' + esc(e.message) + '</div>'; });
+    loadBackup();
+  }
+
+  /* ------------------- Backup, Restore & Clear Transaksi ------------------- */
+  var TABLE_LABEL = { customers: 'Data tamu', outlet_settings: 'Jam outlet', menus: 'Menu', menu_outlets: 'Menu per outlet', staff_users: 'Akun staff',
+    staff_push_subscriptions: 'HP notifikasi', qr_settings: 'Pengaturan QR', app_settings: 'Pengaturan aplikasi', orders: 'Pesanan', order_items: 'Item pesanan', wa_logs: 'Log WhatsApp' };
+  var BK_KIND = { manual: ['Manual', 'gold'], 'auto-restore': ['Otomatis · sebelum restore', 'grey'], 'auto-clear': ['Otomatis · sebelum hapus transaksi', 'grey'] };
+  function bytes(n) { n = Number(n) || 0; return n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function loadBackup() {
+    return api('api/backup.php').then(renderBackup)
+      .catch(function (e) { var b = $('#bkBody'); if (b) b.innerHTML = '<div class="banner warn">' + esc(e.message) + '</div>'; });
+  }
+  function renderBackup(d) {
+    var b = $('#bkBody');
+    if (!b) return;
+    var c = d.counts || {};
+    b.innerHTML =
+      '<div class="card stack">' +
+        '<div class="row wrap"><h3 class="spacer" style="margin:0">💾 Backup & Restore</h3><button class="btn gold" id="bkCreate">+ Buat Backup Sekarang</button></div>' +
+        '<p class="small muted" style="margin:0">Backup berisi seluruh data aplikasi (menu, harga, jam outlet, akun staff, pengaturan QR & WhatsApp, pesanan, data tamu)' +
+          (d.zip ? ' beserta foto menu & logo QR (.zip)' : ' (.json, karena ekstensi zip tidak aktif, foto tidak ikut)') + '. File disimpan di server (folder terlindungi) dan bisa diunduh ke komputer. ' +
+          'Sebelum restore & hapus transaksi, sistem selalu membuat backup otomatis (' + num(d.keep_auto) + ' terakhir disimpan).</p>' +
+        '<div class="small">Data saat ini: ' + Object.keys(c).map(function (k) { return esc(TABLE_LABEL[k] || k) + ' <b>' + num(c[k]) + '</b>'; }).join(' · ') + '</div>' +
+        '<label class="field" style="max-width:360px"><span>Catatan backup (opsional)</span><input class="input sm" id="bkNote" maxlength="40" placeholder="mis. sebelum training"></label>' +
+        (d.backups.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>File</th><th>Jenis</th><th>Waktu</th><th class="right">Ukuran</th><th></th></tr></thead><tbody>' +
+          d.backups.map(function (f, i) {
+            var k = BK_KIND[f.kind] || [f.kind, 'grey'];
+            return '<tr><td class="small" style="word-break:break-all">' + esc(f.name) + '</td><td><span class="badge ' + k[1] + '">' + esc(k[0]) + '</span></td>' +
+              '<td class="nowrap small">' + esc(dmy(f.created_at) + ' ' + hm(f.created_at)) + '</td><td class="right nowrap small">' + bytes(f.size) + '</td>' +
+              '<td class="nowrap"><button class="btn ghost xs" data-bkdl="' + i + '">⬇ Unduh</button> <button class="btn ghost xs" data-bkrs="' + i + '">↺ Restore</button> ' +
+              '<button class="btn ghost xs" data-bkdel="' + i + '" style="color:var(--red)">Hapus</button></td></tr>';
+          }).join('') + '</tbody></table></div>' : '<div class="empty small">Belum ada backup di server.</div>') +
+        '<div class="row wrap" style="gap:8px;border-top:1px solid var(--line);padding-top:12px">' +
+          '<span class="small bold">Restore dari file di komputer:</span><input type="file" id="bkFile" accept=".zip,.json" class="small" style="flex:1;min-width:200px">' +
+          '<button class="btn ghost sm" id="bkUpload">↺ Restore File Ini</button></div>' +
+        '<div class="tiny muted">Batas upload hosting: ' + bytes(d.max_upload) + '. Restore menimpa SEMUA data aplikasi dengan isi backup, termasuk akun staff.</div>' +
+      '</div>' +
+
+      '<div class="card stack" style="margin-top:14px;border:1px solid #f3c2c2">' +
+        '<h3 style="margin:0;color:var(--red)">🧹 Hapus Data Transaksi (Reset setelah Training)</h3>' +
+        '<p class="small muted" style="margin:0">Menghapus seluruh <b>pesanan & item pesanan</b> (' + num(c.orders) + ' pesanan) sehingga monitor & laporan kembali kosong. ' +
+          'Menu, harga, jam outlet, akun staff, pengaturan QR & WhatsApp <b>tidak</b> dihapus. Backup otomatis dibuat sebelum menghapus, jadi bisa di-restore jika keliru.</p>' +
+        '<label class="row small" style="gap:8px"><input type="checkbox" id="clrCust" checked> Hapus juga data tamu (' + num(c.customers) + ' nomor HP dari transaksi uji coba)</label>' +
+        '<label class="row small" style="gap:8px"><input type="checkbox" id="clrWa" checked> Hapus juga log WhatsApp (' + num(c.wa_logs) + ')</label>' +
+        '<div class="row wrap"><span class="spacer"></span><button class="btn" id="clrBtn" style="background:var(--red);color:#fff">Hapus Data Transaksi…</button></div>' +
+      '</div>';
+
+    $('#bkCreate').onclick = function () {
+      var btn = this; busy(btn, true);
+      api('api/backup.php', { method: 'POST', body: { action: 'create', note: $('#bkNote').value.trim() } })
+        .then(function (r) { toast('Backup dibuat. Mengunduh…', 'ok'); d.backups = r.backups; renderBackup(d); downloadBackup(r.file); })
+        .catch(function (e) { busy(btn, false); toast(e.message, 'err'); });
+    };
+    $$('[data-bkdl]', b).forEach(function (x) { x.onclick = function () { downloadBackup(d.backups[+x.getAttribute('data-bkdl')].name, x); }; });
+    $$('[data-bkdel]', b).forEach(function (x) {
+      x.onclick = function () {
+        var f = d.backups[+x.getAttribute('data-bkdel')];
+        confirmBox('Hapus File Backup', 'Hapus "' + f.name + '" dari server? File yang sudah diunduh ke komputer tidak terpengaruh.', 'Hapus').then(function (ok) {
+          if (ok) api('api/backup.php', { method: 'POST', body: { action: 'delete', file: f.name } }).then(function () { toast('File backup dihapus.', 'ok'); loadBackup(); }).catch(function (e) { toast(e.message, 'err'); });
+        });
+      };
+    });
+    $$('[data-bkrs]', b).forEach(function (x) {
+      x.onclick = function () {
+        var f = d.backups[+x.getAttribute('data-bkrs')];
+        dangerForm('Restore Backup', 'Seluruh data aplikasi akan DIGANTI dengan isi backup <b>' + esc(f.name) + '</b> (' + esc(dmy(f.created_at) + ' ' + hm(f.created_at)) + '). Data saat ini dibackup otomatis lebih dulu.',
+          'RESTORE', 'Restore Sekarang', function (pw) { return api('api/backup.php', { method: 'POST', body: { action: 'restore', file: f.name, password: pw, confirm: 'RESTORE' } }); }, afterRestore);
+      };
+    });
+    $('#bkUpload').onclick = function () {
+      var file = $('#bkFile').files[0];
+      if (!file) { toast('Pilih file backup (.zip / .json) dulu.', 'err'); return; }
+      if (file.size > d.max_upload) { toast('File ' + bytes(file.size) + ' melebihi batas upload hosting (' + bytes(d.max_upload) + ').', 'err'); return; }
+      dangerForm('Restore dari File', 'Seluruh data aplikasi akan DIGANTI dengan isi file <b>' + esc(file.name) + '</b> (' + bytes(file.size) + '). Data saat ini dibackup otomatis lebih dulu.',
+        'RESTORE', 'Restore Sekarang', function (pw) {
+          var fd = new FormData(); fd.append('action', 'restore_upload'); fd.append('password', pw); fd.append('confirm', 'RESTORE'); fd.append('file', file);
+          return api('api/backup.php', { method: 'POST', form: fd });
+        }, afterRestore);
+    };
+    $('#clrBtn').onclick = function () {
+      var cust = $('#clrCust').checked, wa = $('#clrWa').checked;
+      dangerForm('Hapus Data Transaksi', 'Akan menghapus <b>' + num(c.orders) + ' pesanan</b>' + (cust ? ', <b>' + num(c.customers) + ' data tamu</b>' : '') + (wa ? ', <b>log WhatsApp</b>' : '') +
+        '. Menu, akun & pengaturan tetap aman. Backup otomatis dibuat sebelum menghapus.', 'HAPUS', 'Hapus Sekarang',
+        function (pw) { return api('api/backup.php', { method: 'POST', body: { action: 'clear_tx', password: pw, confirm: 'HAPUS', customers: cust, wa_logs: wa } }); },
+        function (r) {
+          toast('Data transaksi dihapus (' + num(r.deleted.orders) + ' pesanan). Backup otomatis tersimpan.', 'ok');
+          loadBackup();
+        });
+    };
+  }
+  function afterRestore(r) {
+    var total = Object.keys(r.restored).reduce(function (s, k) { return s + r.restored[k]; }, 0);
+    toast('Restore berhasil: ' + num(total) + ' baris data, ' + num(r.photos) + ' foto. Halaman dimuat ulang…', 'ok');
+    setTimeout(function () { location.reload(); }, 1800);
+  }
+  function downloadBackup(name, btn) {
+    downloadFile('api/backup.php?action=download&file=' + encodeURIComponent(name), name, btn || $('#bkCreate'));
+  }
+  /** Modal konfirmasi tindakan berbahaya: ketik kata kunci + password admin. */
+  function dangerForm(title, html, word, okLabel, run, done) {
+    var w = modal('<div class="modal-head"><h3>' + esc(title) + '</h3><button class="icon-btn" data-close>✕</button></div>' +
+      '<div class="modal-body stack"><div class="banner warn small">' + html + '</div>' +
+        '<label class="field"><span>Ketik <b>' + esc(word) + '</b> untuk konfirmasi</span><input class="input" id="dfWord" autocomplete="off" autocapitalize="characters"></label>' +
+        '<label class="field"><span>Password akun Admin Anda</span><input class="input" id="dfPass" type="password" autocomplete="current-password"></label>' +
+        '<div class="error-text" id="dfErr" hidden></div></div>' +
+      '<div class="modal-foot"><button class="btn ghost" data-close>Batal</button><button class="btn" id="dfOk" style="background:var(--red);color:#fff" disabled>' + esc(okLabel) + '</button></div>');
+    var ok = $('#dfOk', w), wordIn = $('#dfWord', w), passIn = $('#dfPass', w);
+    function check() { ok.disabled = wordIn.value.trim().toUpperCase() !== word || !passIn.value; }
+    wordIn.oninput = check; passIn.oninput = check;
+    wordIn.focus();
+    ok.onclick = function () {
+      var err = $('#dfErr', w); err.hidden = true; busy(ok, true, 'Memproses…');
+      run(passIn.value).then(function (r) { closeModal(w); done(r); })
+        .catch(function (e) { busy(ok, false); err.textContent = e.message; err.hidden = false; });
+    };
   }
 
   function renderSettings(d) {

@@ -13,7 +13,7 @@ if (defined('GAHC_BOOTSTRAPPED')) {
     return;
 }
 define('GAHC_BOOTSTRAPPED', true);
-define('GAHC_VERSION', '1.4.2');
+define('GAHC_VERSION', '1.5.0');
 define('GAHC_ROOT', dirname(__DIR__));
 
 date_default_timezone_set('Asia/Jakarta');
@@ -326,6 +326,15 @@ function require_staff(?string $role = null): array
 
 /** Role staff: admin (CMS penuh), manager (FB SPV/Manager: + kelola menu), cashier. */
 const STAFF_ROLES = ['admin', 'manager', 'cashier'];
+
+/** Database lama (sebelum v1.4) belum punya role 'manager' di ENUM → tambahkan otomatis. */
+function ensure_manager_role(PDO $pdo): void
+{
+    $col = $pdo->query("SHOW COLUMNS FROM staff_users LIKE 'role'")->fetch();
+    if ($col && stripos((string) $col['Type'], "'manager'") === false) {
+        $pdo->exec("ALTER TABLE staff_users MODIFY role ENUM('admin', 'manager', 'cashier') NOT NULL DEFAULT 'cashier'");
+    }
+}
 
 function staff_can_manage_menu(array $staff): bool
 {
