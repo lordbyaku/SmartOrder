@@ -98,6 +98,15 @@ Catatan:
 - **Nomor HP tamu asing** wajib diawali `+` (misal `+81 90...`). Tanpa `+`, angka yang diawali `8` dianggap nomor Indonesia (`08...`).
 - **Pajak & servis** dihitung per item, lalu totalnya dibulatkan ke rupiah penuh.
 - **Kasir** dapat dikunci ke 1 outlet (menu Pengguna). Kasir hanya bisa melihat pesanan outlet tersebut dan menandai menu Habis/Tersedia. CMS penuh hanya untuk Admin.
+- **Role akun** (diatur Admin di tab 👥 Pengguna):
+
+  | Hak akses | Kasir / Waiter | FB SPV / Manager | Admin |
+  |---|:-:|:-:|:-:|
+  | Monitor pesanan, Laporan, tandai menu Habis/Tersedia | ✔ | ✔ | ✔ |
+  | Tambah & edit menu, upload foto menu, salin menu ke outlet lain | – | ✔ | ✔ |
+  | Hapus menu, Jam Outlet, QR Code, Pengguna, Pengaturan WhatsApp | – | – | ✔ |
+
+  FB SPV/Manager juga bisa dikunci ke 1 outlet, atau diberi akses "Semua Outlet". Database versi lama otomatis ditambahkan role ini saat Admin pertama kali menyimpan akun FB SPV/Manager.
 - **Anti-spam:** maksimal 6 pesanan berstatus "baru" per nomor HP dalam 10 menit.
 - **Log error server:** `config/logs/php-error.log` (diblokir dari akses web).
 

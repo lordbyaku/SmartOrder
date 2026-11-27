@@ -27,13 +27,22 @@ if ($method === 'GET') {
     json_ok(['users' => list_users($pdo), 'outlets' => OUTLETS]);
 }
 
+/** Database lama (sebelum v1.4) belum punya role 'manager' di ENUM → tambahkan otomatis. */
+function ensure_manager_role(PDO $pdo): void
+{
+    $col = $pdo->query("SHOW COLUMNS FROM staff_users LIKE 'role'")->fetch();
+    if ($col && stripos((string) $col['Type'], "'manager'") === false) {
+        $pdo->exec("ALTER TABLE staff_users MODIFY role ENUM('admin', 'manager', 'cashier') NOT NULL DEFAULT 'cashier'");
+    }
+}
+
 $in = read_json();
 
 if ($method === 'POST') {
     $id = (int) ($in['id'] ?? 0);
     $username = strtolower(str_input($in['username'] ?? '', 50));
     $fullName = str_input($in['full_name'] ?? '', 100);
-    $role = ($in['role'] ?? 'cashier') === 'admin' ? 'admin' : 'cashier';
+    $role = in_array($in['role'] ?? '', STAFF_ROLES, true) ? $in['role'] : 'cashier';
     $outlet = (string) ($in['assigned_outlet'] ?? 'ALL');
     $outlet = is_valid_outlet($outlet) ? $outlet : 'ALL';
     $password = is_string($in['password'] ?? null) ? $in['password'] : '';
@@ -51,6 +60,10 @@ if ($method === 'POST') {
     $dup->execute([$username, $id]);
     if ($dup->fetchColumn()) {
         json_error('Username sudah dipakai.', 409);
+    }
+
+    if ($role === 'manager') {
+        ensure_manager_role($pdo);
     }
 
     if ($id > 0) {

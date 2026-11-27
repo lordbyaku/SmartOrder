@@ -121,6 +121,9 @@
       OUTLETS.map(function (o) { return '<option value="' + esc(o) + '"' + (selected === o ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('');
   }
   function isAdmin() { return state.user && state.user.role === 'admin'; }
+  function canMenu() { return state.user && (state.user.role === 'admin' || state.user.role === 'manager'); }
+  var ROLE_LABEL = { admin: 'Admin', manager: 'FB SPV/Manager', cashier: 'Kasir' };
+  function roleLabel(r) { return ROLE_LABEL[r] || r; }
   function lockedOutlet() { return state.user && state.user.role !== 'admin' && state.user.assigned_outlet !== 'ALL' ? state.user.assigned_outlet : null; }
 
   /* ------------------------------ Sound ----------------------------- */
@@ -229,7 +232,7 @@
       '<header class="app-header"><div class="container">' +
         '<div class="bar">' +
           '<div class="brand"><img src="assets/icons/icon-192.png" alt="" width="36" height="36"><div class="brand-text">' +
-            '<div class="t1">GAHC Smart Order</div><div class="t2">' + esc(u.full_name) + ' · ' + (u.role === 'admin' ? 'Admin' : 'Kasir') +
+            '<div class="t1">GAHC Smart Order</div><div class="t2">' + esc(u.full_name) + ' · ' + esc(roleLabel(u.role)) +
             (u.assigned_outlet !== 'ALL' ? ' · ' + esc(u.assigned_outlet) : '') + '</div></div></div>' +
           '<div class="spacer"></div>' +
           '<div class="staff-actions">' +
@@ -948,12 +951,12 @@
   function viewMenu(v) {
     var f = state.menuFilter;
     v.innerHTML = '<div class="row wrap" style="margin-top:16px"><h2 class="section-title spacer" style="margin:0">Master Menu</h2>' +
-      (isAdmin() ? '<button class="btn gold" id="mAdd">+ Tambah Menu</button>' : '') + '</div>' +
+      (canMenu() ? '<button class="btn gold" id="mAdd">+ Tambah Menu</button>' : '') + '</div>' +
       '<div class="filters"><input class="input sm" id="mQ" placeholder="Cari nama / kode VHP" value="' + esc(f.q) + '" style="flex:1;min-width:200px">' +
         '<select class="input sm" id="mOutlet">' + outletOptions(f.outlet, true, 'Semua Outlet') + '</select>' +
         '<select class="input sm" id="mCat"><option value="ALL">Semua Kategori</option>' + CATEGORIES.map(function (c) { return '<option' + (f.cat === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div>' +
       '<div class="table-wrap" id="mTable"><div style="padding:16px"><div class="skeleton" style="height:80px"></div></div></div>';
-    if (isAdmin()) $('#mAdd').onclick = function () { menuForm(null); };
+    if (canMenu()) $('#mAdd').onclick = function () { menuForm(null); };
     $('#mQ').oninput = function (e) { f.q = e.target.value; renderMenuTable(); };
     $('#mOutlet').onchange = function (e) { f.outlet = e.target.value; renderMenuTable(); };
     $('#mCat').onchange = function (e) { f.cat = e.target.value; renderMenuTable(); };
@@ -988,10 +991,10 @@
           '<td>' + outlets + '</td>' +
           '<td><label class="switch"><input type="checkbox" data-avail="' + m.id + '"' + (m.is_available ? ' checked' : '') + '><span class="sl"></span></label>' +
             '<div class="tiny ' + (m.is_available ? 'muted' : '') + '" style="color:' + (m.is_available ? '' : 'var(--red)') + '">' + (m.is_available ? 'Tersedia' : 'Habis') + '</div></td>' +
-          '<td class="nowrap">' + (isAdmin()
+          '<td class="nowrap">' + (canMenu()
             ? '<button class="btn ghost xs" data-edit="' + m.id + '">Edit</button> ' +
               (m.outlets.length < OUTLETS.length ? '<button class="btn ghost xs" data-copy="' + m.id + '">Copy</button> ' : '') +
-              '<button class="btn ghost xs" data-del="' + m.id + '" style="color:var(--red)">Hapus</button>'
+              (isAdmin() ? '<button class="btn ghost xs" data-del="' + m.id + '" style="color:var(--red)">Hapus</button>' : '')
             : '') + '</td></tr>';
       }).join('') + '</tbody></table>';
     $$('[data-avail]', t).forEach(function (cb) {
@@ -1361,7 +1364,7 @@
     var t = $('#uTable'); if (!t) return;
     t.innerHTML = '<table class="table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Outlet</th><th>HP Notifikasi</th><th></th></tr></thead><tbody>' +
       state.users.map(function (u) {
-        return '<tr><td class="bold">' + esc(u.username) + '</td><td>' + esc(u.full_name) + '</td><td>' + (u.role === 'admin' ? '<span class="badge gold">Admin</span>' : '<span class="badge grey">Kasir</span>') + '</td>' +
+        return '<tr><td class="bold">' + esc(u.username) + '</td><td>' + esc(u.full_name) + '</td><td>' + '<span class="badge ' + ({ admin: 'gold', manager: 'green' }[u.role] || 'grey') + '">' + esc(roleLabel(u.role)) + '</span>' + '</td>' +
           '<td class="small">' + esc(u.assigned_outlet === 'ALL' ? 'Semua Outlet' : u.assigned_outlet) + '</td><td class="small">' + u.devices + ' perangkat</td>' +
           '<td class="nowrap"><button class="btn ghost xs" data-ue="' + u.id + '">Edit</button> ' + (u.id !== state.user.id ? '<button class="btn ghost xs" style="color:var(--red)" data-ud="' + u.id + '">Hapus</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table>';
@@ -1382,7 +1385,7 @@
       '<div class="modal-body stack">' +
         '<label class="field"><span>Username</span><input class="input" id="uName" autocapitalize="none" value="' + esc(u.username) + '"></label>' +
         '<label class="field"><span>Nama Lengkap</span><input class="input" id="uFull" value="' + esc(u.full_name) + '"></label>' +
-        '<div class="grid grid-2"><label class="field"><span>Role</span><select class="input" id="uRole"><option value="cashier"' + (u.role === 'cashier' ? ' selected' : '') + '>Kasir / Waiter</option><option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin (CMS penuh)</option></select></label>' +
+        '<div class="grid grid-2"><label class="field"><span>Role</span><select class="input" id="uRole"><option value="cashier"' + (u.role === 'cashier' ? ' selected' : '') + '>Kasir / Waiter</option><option value="manager"' + (u.role === 'manager' ? ' selected' : '') + '>FB SPV / Manager (+ kelola menu)</option><option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin (CMS penuh)</option></select></label>' +
         '<label class="field"><span>Outlet</span><select class="input" id="uOutlet">' + outletOptions(u.assigned_outlet, true, 'Semua Outlet') + '</select></label></div>' +
         '<label class="field"><span>Password ' + (isNew ? '(min. 8)' : '(kosongkan bila tidak diganti)') + '</span><input class="input" id="uPass" type="password" autocomplete="new-password"></label>' +
         '<div class="error-text" id="uErr" hidden></div></div>' +

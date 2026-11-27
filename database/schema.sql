@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS staff_users (
   username VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(100) NOT NULL,
-  role ENUM('admin', 'cashier') NOT NULL DEFAULT 'cashier',
+  role ENUM('admin', 'manager', 'cashier') NOT NULL DEFAULT 'cashier',
   assigned_outlet VARCHAR(60) DEFAULT 'ALL',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

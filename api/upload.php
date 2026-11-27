@@ -1,6 +1,6 @@
 <?php
 /**
- * POST /api/upload.php  (admin)  multipart/form-data: file, type = 'menu' | 'qr_logo'
+ * POST /api/upload.php  (admin; foto menu juga FB SPV/Manager)  multipart/form-data: file, type = 'menu' | 'qr_logo'
  * Validasi MIME ketat (jpeg/png/webp), maks 3 MB, resize otomatis via GD
  * (menu: lebar maks 800px -> JPG, logo QR: lebar maks 300px -> PNG transparan).
  */
@@ -10,13 +10,16 @@ require __DIR__ . '/../config/database.php';
 if (request_method() !== 'POST') {
     json_error('Method tidak didukung.', 405);
 }
-require_staff('admin');
+$staff = require_staff('menu');
 
 if (!extension_loaded('gd')) {
     json_error('Ekstensi PHP GD tidak aktif di hosting. Aktifkan lewat cPanel > Select PHP Version > Extensions.', 500);
 }
 
 $type = ($_POST['type'] ?? 'menu') === 'qr_logo' ? 'qr_logo' : 'menu';
+if ($type === 'qr_logo' && $staff['role'] !== 'admin') {
+    json_error('Akses khusus Admin.', 403);
+}
 $file = $_FILES['file'] ?? null;
 if (!$file || !is_array($file) || is_array($file['error'])) {
     // post_max_size terlampaui -> $_FILES & $_POST kosong

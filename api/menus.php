@@ -3,8 +3,8 @@
  * /api/menus.php
  *  GET ?outlet=Nama                 (publik)  menu aktif untuk 1 outlet + status jam operasional
  *  GET                              (staff)   seluruh Master Menu + outlets + outlet_prices
- *  POST                             (admin)   simpan / perbarui Master Menu (+ sinkron menu_outlets)
- *  POST ?action=copy_outlet         (admin)   salin menu ke outlet lain (INSERT IGNORE)
+ *  POST                             (admin/manager) simpan / perbarui Master Menu (+ sinkron menu_outlets)
+ *  POST ?action=copy_outlet         (admin/manager) salin menu ke outlet lain (INSERT IGNORE)
  *  PATCH {id, is_available}         (staff)   quick toggle Tersedia / Habis
  *  DELETE {id}                      (admin)   hapus menu
  */
@@ -137,7 +137,7 @@ if ($method === 'GET') {
 
 /* ============================== POST ============================= */
 if ($method === 'POST' || $method === 'PUT') {
-    require_staff('admin');
+    require_staff('menu');
     $in = read_json();
     $action = (string) ($_GET['action'] ?? ($in['action'] ?? 'save'));
 

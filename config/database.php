@@ -13,7 +13,7 @@ if (defined('GAHC_BOOTSTRAPPED')) {
     return;
 }
 define('GAHC_BOOTSTRAPPED', true);
-define('GAHC_VERSION', '1.3.0');
+define('GAHC_VERSION', '1.4.0');
 define('GAHC_ROOT', dirname(__DIR__));
 
 date_default_timezone_set('Asia/Jakarta');
@@ -280,7 +280,8 @@ function current_staff(): ?array
 }
 
 /**
- * Wajib login staff. $role = 'admin' untuk endpoint khusus admin.
+ * Wajib login staff. $role = 'admin' untuk endpoint khusus admin,
+ * 'menu' untuk kelola menu (Admin + FB SPV/Manager).
  * Untuk method selain GET, token CSRF wajib dikirim di header X-CSRF-Token.
  */
 function require_staff(?string $role = null): array
@@ -315,9 +316,20 @@ function require_staff(?string $role = null): array
     if ($role === 'admin' && ($staff['role'] ?? '') !== 'admin') {
         json_error('Akses khusus Admin.', 403);
     }
+    if ($role === 'menu' && !staff_can_manage_menu($staff)) {
+        json_error('Akses khusus Admin / FB SPV-Manager.', 403);
+    }
     // Sesi read-only setelah validasi supaya polling paralel tidak saling mengunci file sesi.
     session_write_close();
     return $staff;
+}
+
+/** Role staff: admin (CMS penuh), manager (FB SPV/Manager: + kelola menu), cashier. */
+const STAFF_ROLES = ['admin', 'manager', 'cashier'];
+
+function staff_can_manage_menu(array $staff): bool
+{
+    return in_array($staff['role'] ?? '', ['admin', 'manager'], true);
 }
 
 /** Outlet yang boleh dilihat staff (kasir bisa dikunci ke 1 outlet). */
