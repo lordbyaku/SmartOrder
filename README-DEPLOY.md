@@ -72,7 +72,7 @@ Kode QR untuk keempat outlet dibuat dan dicetak dari menu **QR Code** di dashboa
 - Update dari versi sebelumnya (sebelum ada Laporan lengkap + WhatsApp): cukup timpa file. Tabel baru (`app_settings`, `wa_logs`) dibuat otomatis saat tab Pengaturan pertama kali dibuka, jadi tidak perlu menjalankan ulang setup.
 
 ### Deploy otomatis dari GitHub ke cPanel
-Setiap `sync.bat` (push ke branch `main`), GitHub Actions akan mengecek sintaks PHP lalu meng-upload file yang berubah saja ke cPanel lewat FTP (`.github/workflows/deploy-cpanel.yml`).
+Setiap `sync.bat` (push ke branch `main`), GitHub Actions akan mengecek sintaks PHP lalu meng-upload file ke cPanel lewat FTPS memakai `lftp` (`.github/workflows/deploy-cpanel.yml`).
 
 Setup sekali:
 1. **cPanel → FTP Accounts**: buat akun khusus, misalnya `deploy@grandartoshotel.com`, dengan *Directory* diarahkan ke Document Root subdomain (misalnya `public_html/order` atau `order.grandartoshotel.com`). Catat juga *FTP Server* yang tertera di "Configure FTP Client".
@@ -86,12 +86,12 @@ Setup sekali:
    | `FTP_SERVER_DIR` | `./` (karena akun FTP sudah langsung ke folder subdomain). Wajib diakhiri `/` |
    | `FTP_PROTOCOL` *(opsional)* | `ftps` (bawaan). Isi `ftp` hanya jika deploy gagal karena TLS |
 
-3. Jalankan `sync.bat` atau buka tab **Actions → Deploy ke cPanel → Run workflow**. Deploy pertama meng-upload semua file (beberapa menit), deploy berikutnya hanya file yang berubah.
+3. Jalankan `sync.bat` atau buka tab **Actions → Deploy ke cPanel → Run workflow**. Setiap deploy meng-upload ulang semua file aplikasi (±0,5 MB, kurang dari 1 menit).
 4. Setelah deploy pertama, buka `https://<subdomain>/setup.php` jika installer belum pernah dijalankan.
 
 Catatan:
 - `config/env.php`, `config/vapid.php`, `setup.lock`, foto upload, sesi, dan log di server **tidak pernah disentuh** oleh deploy.
-- File `.ftp-deploy-sync-state.json` di server adalah catatan sinkron, jangan dihapus. Menghapusnya hanya membuat deploy berikutnya meng-upload ulang semua file.
+- `FTP_SERVER` harus alamat server cPanel (lihat *Configure FTP Client* atau *General Information*), **bukan** `ftp.grandartoshotel.com`, karena alamat itu mengarah ke proxy website dan port FTP-nya tertutup.
 - Jika deploy gagal, lihat tab **Actions** di GitHub. Langkah yang merah menjelaskan penyebabnya, misalnya secret belum diisi atau error sintaks PHP.
 
 ## 8. Catatan aturan bisnis yang perlu diketahui

@@ -1,4 +1,4 @@
-# Deploy otomatis ke cPanel (Niagahoster) lewat FTP setiap ada push ke branch main.
+# Deploy otomatis ke cPanel (Niagahoster) lewat FTPS (lftp) setiap ada push ke branch main.
 # Secrets yang wajib diisi di GitHub → Settings → Secrets and variables → Actions:
 #   FTP_SERVER      contoh: ftp.grandartoshotel.com  (atau IP server dari cPanel)
 #   FTP_USERNAME    akun FTP khusus deploy, contoh: deploy@grandartoshotel.com
@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Ambil kode
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Siapkan PHP 8.2
         uses: shivammathur/setup-php@2.31.1
@@ -65,31 +65,48 @@ jobs:
           if [ -n "$missing" ]; then echo "::error::Secrets belum diisi:$missing"; exit 1; fi
           case "$D" in */) ;; *) echo "::error::FTP_SERVER_DIR harus diakhiri '/'"; exit 1;; esac
 
-      - name: Upload ke cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
-          port: ${{ secrets.FTP_PORT || 21 }}
-          dangerous-clean-slate: false
-          state-name: .ftp-deploy-sync-state.json
-          log-level: standard
-          timeout: 120000
-          # File di bawah ini TIDAK pernah diupload/ditimpa/dihapus di server.
-          # Foto upload, sesi, log & env.php di server aman: action hanya menghapus file yang dulu ia upload sendiri.
-          exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            sync.bat
-            *.md
-            config/env.php
-            config/vapid.php
-            config/setup.lock
-            setup.lock
+      - name: Siapkan file yang akan diupload
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/deploy"
+          rsync -a ./ "$RUNNER_TEMP/deploy/"             --exclude '.git' --exclude '.github' --exclude '.gitignore' --exclude '.gitattributes'             --exclude 'sync.bat' --exclude '*.md'             --exclude 'config/env.php' --exclude 'config/vapid.php' --exclude 'config/setup.lock' --exclude 'setup.lock'
+          echo "File yang akan diupload:"; (cd "$RUNNER_TEMP/deploy" && find . -type f | sort)
+
+      - name: Pasang lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp > /dev/null
+
+      - name: Upload ke cPanel (lftp)
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+          FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL }}
+          FTP_PORT: ${{ secrets.FTP_PORT }}
+        run: |
+          set -e
+          PORT="${FTP_PORT:-21}"
+          if [ "${FTP_PROTOCOL:-ftps}" = "ftp" ]; then
+            SSL="set ftp:ssl-allow no;"
+            echo "Mode: FTP biasa (tanpa TLS)"
+          else
+            SSL="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no;"
+            echo "Mode: FTPS (TLS)"
+          fi
+          # Tanpa --delete: file di server yang tidak ada di repo (env.php, foto upload, sesi, log) TIDAK dihapus.
+          export LFTP_PASSWORD="$FTP_PASSWORD"
+          lftp -u "$FTP_USERNAME" --env-password -p "$PORT" "$FTP_SERVER" <<LFTP
+          $SSL
+          set ftp:passive-mode true
+          set net:timeout 30
+          set net:max-retries 3
+          set net:reconnect-interval-base 5
+          set cmd:fail-exit true
+          mirror --reverse --verbose=1 --parallel=4 --no-perms "$RUNNER_TEMP/deploy/" "$FTP_SERVER_DIR"
+          set cmd:fail-exit false
+          rm -f "$FTP_SERVER_DIR.ftp-deploy-sync-state.json"
+          bye
+          LFTP
 
       - name: Selesai
         run: echo "Deploy selesai → commit ${GITHUB_SHA::7}"
