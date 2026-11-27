@@ -13,7 +13,7 @@ if (defined('GAHC_BOOTSTRAPPED')) {
     return;
 }
 define('GAHC_BOOTSTRAPPED', true);
-define('GAHC_VERSION', '1.4.1');
+define('GAHC_VERSION', '1.4.2');
 define('GAHC_ROOT', dirname(__DIR__));
 
 date_default_timezone_set('Asia/Jakarta');
