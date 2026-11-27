@@ -1,0 +1,30 @@
+# --- Rahasia & data server (JANGAN di-commit) ---
+config/env.php
+config/vapid.php
+setup.lock
+config/setup.lock
+
+# Sesi & log runtime (folder tetap ada via index.html/.htaccess)
+config/sessions/*
+!config/sessions/.htaccess
+!config/sessions/index.html
+config/logs/*
+!config/logs/.htaccess
+!config/logs/index.html
+
+# Upload foto menu & QR (hasil upload di server)
+uploads/menus/*
+!uploads/menus/index.html
+uploads/qr/*
+!uploads/qr/index.html
+
+# Lain-lain
+*.log
+*.bak
+*.zip
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+.claude/

@@ -1,0 +1,74 @@
+# =====================================================================
+# Smart Outlet Ordering GAHC — .htaccess (Apache 2.4 / LiteSpeed cPanel)
+# =====================================================================
+Options -Indexes
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # --- Paksa HTTPS (Service Worker, PWA & Web Push WAJIB https) ---
+  # Dilewati untuk localhost agar bisa diuji di komputer lokal.
+  RewriteCond %{REQUEST_URI} !^/.well-known/ [NC]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:\d+)?$ [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # --- Blokir folder & file sensitif ---
+  RewriteRule ^(config|database)(/|$) - [F,L]
+  RewriteRule (^|/)\.(?!well-known/) - [F,L]
+  RewriteRule \.(sql|lock|log|md|bak|tmp)$ - [F,L,NC]
+</IfModule>
+
+# --- Fallback tanpa mod_rewrite: tolak file sensitif ---
+<FilesMatch "\.(sql|lock|log|md|bak|tmp)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# --- MIME types PWA ---
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType application/json .json
+  AddType application/javascript .js
+  AddType image/webp .webp
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Header keamanan dasar
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+
+  # HTML & manifest: selalu revalidasi agar update di cPanel langsung terlihat
+  <FilesMatch "\.(html|json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Asset statis (dipanggil dengan ?v=versi) boleh di-cache
+  <FilesMatch "\.(css|js|png|jpg|jpeg|webp|svg|ico)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+
+  # Service Worker selalu diambil versi terbaru (tanpa cache) — harus di bawah aturan .js di atas
+  <Files "sw.js">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </Files>
+</IfModule>
+
+# Jangan biarkan LiteSpeed Cache menyimpan respon API / halaman dinamis
+<IfModule LiteSpeed>
+  CacheLookup off
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>

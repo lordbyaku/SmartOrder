@@ -1,0 +1,19 @@
+{
+  "id": "./staff.html",
+  "name": "GAHC Smart Order — Monitor Kasir",
+  "short_name": "GAHC Kasir",
+  "description": "Monitor pesanan 4 outlet Grand Artos Hotel & Convention dengan notifikasi real-time.",
+  "lang": "id",
+  "start_url": "./staff.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0b192c",
+  "background_color": "#0b192c",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512-any.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
