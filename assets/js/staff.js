@@ -994,7 +994,7 @@
           '<td class="nowrap">' + (canMenu()
             ? '<button class="btn ghost xs" data-edit="' + m.id + '">Edit</button> ' +
               (m.outlets.length < OUTLETS.length ? '<button class="btn ghost xs" data-copy="' + m.id + '">Copy</button> ' : '') +
-              (isAdmin() ? '<button class="btn ghost xs" data-del="' + m.id + '" style="color:var(--red)">Hapus</button>' : '')
+              '<button class="btn ghost xs" data-del="' + m.id + '" style="color:var(--red)">Hapus</button>'
             : '') + '</td></tr>';
       }).join('') + '</tbody></table>';
     $$('[data-avail]', t).forEach(function (cb) {
@@ -1241,7 +1241,7 @@
     ed.innerHTML =
       '<label class="field"><span>Outlet</span><select class="input" id="qOutlet">' + outletOptions(state.qrOutlet, false) + '</select></label>' +
       '<label class="field"><span>Base URL Aplikasi</span><input class="input" id="qBase" value="' + esc(state.qrBase) + '"><div class="hint">Diambil dari setup (APP_URL). Contoh https://order.grandartoshotel.com</div></label>' +
-      '<label class="field"><span>Judul Hotel</span><input class="input" id="qHotel" maxlength="150" value="' + esc(s.hotel_title) + '"></label>' +
+      '<label class="field"><span>Judul Hotel <span class="muted">(opsional, kosongkan jika sudah ada logo)</span></span><input class="input" id="qHotel" maxlength="150" value="' + esc(s.hotel_title || '') + '"></label>' +
       '<label class="field"><span>Judul Outlet (khusus outlet terpilih)</span><input class="input" id="qOutletTitle" maxlength="80" value="' + esc(s.custom_outlet_titles[state.qrOutlet] || state.qrOutlet) + '"></label>' +
       '<label class="field"><span>Teks Badge Layanan</span><input class="input" id="qBadge" maxlength="80" value="' + esc(s.badge_text) + '"><div class="hint">Untuk Room Service, badge otomatis "Room Service — Delivered to Your Room" bila teks masih default.</div></label>' +
       '<label class="field"><span>Instruksi Scan (bawah)</span><textarea class="input" id="qFoot" maxlength="500">' + esc(s.footer_desc || '') + '</textarea></label>' +
@@ -1320,7 +1320,7 @@
       function panel(flip) {
         return '<div class="tent-panel' + (flip ? ' flip' : '') + '">' +
           (s.show_header_logo && s.logo_url ? '<img class="t-logo" src="' + esc(s.logo_url) + '" alt="">' : '') +
-          '<div class="t-hotel">' + esc(s.hotel_title) + '</div>' +
+          (s.hotel_title ? '<div class="t-hotel">' + esc(s.hotel_title) + '</div>' : '') +
           '<div class="t-outlet">' + esc(s.custom_outlet_titles[outlet] || outlet) + '</div>' +
           '<div class="t-badge">' + esc(badge) + '</div>' +
           '<div data-qr></div>' +

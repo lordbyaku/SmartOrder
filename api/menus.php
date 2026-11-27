@@ -6,7 +6,7 @@
  *  POST                             (admin/manager) simpan / perbarui Master Menu (+ sinkron menu_outlets)
  *  POST ?action=copy_outlet         (admin/manager) salin menu ke outlet lain (INSERT IGNORE)
  *  PATCH {id, is_available}         (staff)   quick toggle Tersedia / Habis
- *  DELETE {id}                      (admin)   hapus menu
+ *  DELETE {id}                      (admin/manager) hapus menu
  */
 declare(strict_types=1);
 require __DIR__ . '/../config/database.php';
@@ -247,7 +247,7 @@ if ($method === 'PATCH') {
 
 /* ============================== DELETE =========================== */
 if ($method === 'DELETE') {
-    require_staff('admin');
+    require_staff('menu');
     $in = read_json();
     $id = (int) ($in['id'] ?? ($_GET['id'] ?? 0));
     if ($id <= 0) {

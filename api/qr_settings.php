@@ -49,9 +49,6 @@ if ($method === 'POST') {
     $hotel = str_input($in['hotel_title'] ?? '', 150);
     $badge = str_input($in['badge_text'] ?? '', 80);
     $footer = str_input($in['footer_desc'] ?? '', 500);
-    if ($hotel === '') {
-        json_error('Judul hotel wajib diisi.', 422);
-    }
     $titles = [];
     $rawTitles = is_array($in['custom_outlet_titles'] ?? null) ? $in['custom_outlet_titles'] : [];
     foreach (OUTLETS as $o) {

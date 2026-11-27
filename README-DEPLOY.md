@@ -103,8 +103,8 @@ Catatan:
   | Hak akses | Kasir / Waiter | FB SPV / Manager | Admin |
   |---|:-:|:-:|:-:|
   | Monitor pesanan, Laporan, tandai menu Habis/Tersedia | ✔ | ✔ | ✔ |
-  | Tambah & edit menu, upload foto menu, salin menu ke outlet lain | – | ✔ | ✔ |
-  | Hapus menu, Jam Outlet, QR Code, Pengguna, Pengaturan WhatsApp | – | – | ✔ |
+  | Tambah, edit, hapus menu, upload foto menu, salin menu ke outlet lain | – | ✔ | ✔ |
+  | Jam Outlet, QR Code, Pengguna, Pengaturan WhatsApp | – | – | ✔ |
 
   FB SPV/Manager juga bisa dikunci ke 1 outlet, atau diberi akses "Semua Outlet". Database versi lama otomatis ditambahkan role ini saat Admin pertama kali menyimpan akun FB SPV/Manager.
 - **Anti-spam:** maksimal 6 pesanan berstatus "baru" per nomor HP dalam 10 menit.

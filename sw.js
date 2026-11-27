@@ -4,7 +4,7 @@
  * - Listener Web Push (background / layar terkunci)
  * Naikkan CACHE_VERSION setiap kali ada update file frontend.
  * ===================================================================== */
-const CACHE_VERSION = 'gahc-staff-v1.2.0';
+const CACHE_VERSION = 'gahc-staff-v1.2.1';
 const SCOPE_URL = new URL(self.registration.scope);
 const PRECACHE = [
   'staff.html',
