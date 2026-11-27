@@ -1,0 +1,95 @@
+# Deploy otomatis ke cPanel (Niagahoster) lewat FTP setiap ada push ke branch main.
+# Secrets yang wajib diisi di GitHub → Settings → Secrets and variables → Actions:
+#   FTP_SERVER      contoh: ftp.grandartoshotel.com  (atau IP server dari cPanel)
+#   FTP_USERNAME    akun FTP khusus deploy, contoh: deploy@grandartoshotel.com
+#   FTP_PASSWORD    password akun FTP tersebut
+#   FTP_SERVER_DIR  folder tujuan relatif dari home akun FTP, WAJIB diakhiri "/", contoh: ./
+# Opsional:
+#   FTP_PROTOCOL    ftps (bawaan) atau ftp bila server tidak mendukung TLS
+#   FTP_PORT        21 (bawaan)
+name: Deploy ke cPanel
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'sync.bat'
+      - '.gitignore'
+      - '.gitattributes'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cpanel
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Siapkan PHP 8.2
+        uses: shivammathur/setup-php@2.31.1
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: none
+
+      - name: Cek sintaks semua file PHP
+        run: |
+          set -e
+          find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l > /dev/null
+          echo "Semua file PHP lolos cek sintaks."
+
+      - name: Pastikan file rahasia tidak ikut
+        run: |
+          for f in config/env.php config/vapid.php config/setup.lock setup.lock; do
+            if [ -e "$f" ]; then echo "::error::$f tidak boleh ada di repository"; exit 1; fi
+          done
+
+      - name: Cek secrets
+        env:
+          S: ${{ secrets.FTP_SERVER }}
+          U: ${{ secrets.FTP_USERNAME }}
+          P: ${{ secrets.FTP_PASSWORD }}
+          D: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          missing=""
+          [ -z "$S" ] && missing="$missing FTP_SERVER"
+          [ -z "$U" ] && missing="$missing FTP_USERNAME"
+          [ -z "$P" ] && missing="$missing FTP_PASSWORD"
+          [ -z "$D" ] && missing="$missing FTP_SERVER_DIR"
+          if [ -n "$missing" ]; then echo "::error::Secrets belum diisi:$missing"; exit 1; fi
+          case "$D" in */) ;; *) echo "::error::FTP_SERVER_DIR harus diakhiri '/'"; exit 1;; esac
+
+      - name: Upload ke cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          dangerous-clean-slate: false
+          state-name: .ftp-deploy-sync-state.json
+          log-level: standard
+          timeout: 120000
+          # File di bawah ini TIDAK pernah diupload/ditimpa/dihapus di server.
+          # Foto upload, sesi, log & env.php di server aman: action hanya menghapus file yang dulu ia upload sendiri.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            sync.bat
+            *.md
+            config/env.php
+            config/vapid.php
+            config/setup.lock
+            setup.lock
+
+      - name: Selesai
+        run: echo "Deploy selesai → commit ${GITHUB_SHA::7}"
